@@ -3,7 +3,6 @@
 library(maps)
 library(mapdata)
 library(ggmap)
-library(grid)
 library(patchwork)
 library(ggplot2)
 library(dplyr) 
@@ -50,13 +49,14 @@ Norway_map <- ggplot() +
   labs(x = NULL, y = NULL) +
   guides(alpha = FALSE) +
   theme(
-    axis.text = element_text(size = 9),
+    axis.text = element_text(size = 7),
     axis.ticks = element_blank(),
     panel.grid = element_blank(),
     panel.border = element_rect(fill = NA, colour = "black"),
     panel.background = element_rect(fill = "white"),
     plot.background = element_rect(fill = "white"),
     legend.position="bottom")
+show(Norway_map)
 
 maptheme <- function(...) {
   theme(
@@ -76,17 +76,26 @@ maptheme <- function(...) {
 
 Zoomed_in_map <- ggplot(dat, aes(x = Longitude, y = Latitude, fill = Precipitation)) +
   geom_map(aes(x = long, y = lat, map_id = region), data = norwaymapHires, map = norwaymapHires, color = NA, fill = "grey70") +
-  geom_point(size = 2.5) +
+  geom_point(size = 2.5, shape = 21) +
   coord_map(xlim = xlim, ylim = ylim) +
   guides(fill = guide_legend(override.aes = list(shape = 21))) +
   scale_fill_manual(values = Precip_palette, labels = precipLab, aesthetics = "fill", breaks = 1:4) +
   scale_shape_manual(values = c(24, 21, 25), labels = tempLab, breaks = 1:3) +
-  maptheme()
+  maptheme() +
+  guides(fill=guide_legend(title="Precipitation:"))
 show(Zoomed_in_map)
 
+#scandimap top right
 plot <- Zoomed_in_map +
-  inset_element(Norway_map, 0.6, 0.6, 1, 1, align_to = "full") +
-  plot_layout(guides = 'collect', widths = 1, heights = 1) 
+  inset_element(Norway_map,  left = 0.75, bottom = 0.67, right = 0.997, top = 0.98,
+                align_to = "full") 
+show(plot)
+
+#scandimap bottom right
+plot <- Zoomed_in_map +
+  inset_element(Norway_map, left = 0.75, bottom = 0.23, right = 0.98, top = 0.6,
+                align_to = "full") 
+
 
 show(plot)
 
