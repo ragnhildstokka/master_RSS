@@ -26,7 +26,7 @@ loop.files <-  function(files){
                                                          "/", gsub("-NA$", "", newfile)))
   }
   print(files)
-  area <- try(run.ij(set.directory = new.folder, distance.pixel = 237, known.distance = 2, log = TRUE, low.size = 0.005, trim.pixel = 60, trim.pixel2 = 150, save.image = TRUE))
+  area <- try(run.ij(set.directory = new.folder, distance.pixel = round(600/2.54), known.distance = 1, log = TRUE, low.size = 0.00, trim.pixel = 5, save.image = TRUE))
   # more cropping
   #area <- try(run.ij(set.directory = new.folder, distance.pixel = 237, known.distance = 2, log = TRUE, low.size = 0.005, trim.pixel = 200, trim.pixel2 = 0, save.image = TRUE))
   
@@ -40,15 +40,29 @@ loop.files <-  function(files){
   return(res)
 }
 
+#scanning TEST, have low.size = 0, and trim.pixel = 5
+list.of.files <- dir(path = paste0("data/test/"), pattern = "jpeg|jpg", recursive = TRUE, full.names = TRUE)
+new.folder <- "data/Temp/"
+output.folder <- "data/test_output/"
+scans_1 <- plyr::ldply(list.of.files, loop.files)
 
+#scanning, 
 list.of.files <- dir(path = paste0("data/leaves_sp_va/"), pattern = "jpeg|jpg", recursive = TRUE, full.names = TRUE)
 new.folder <- "data/Temp/"
 output.folder <- "data/output/"
-LA <- plyr::ldply(list.of.files, loop.files)
+scans_2 <- plyr::ldply(list.of.files, loop.files)
 
 
 # extract everything before point
-leaf_area <- LA |>
+
+leaf_area_1 <- scans_1 |>
+  mutate(ID = sub("\\..*", "", ID)) |>
+  group_by(dir, ID) |>
+  summarise(n = n(),
+            leaf_area = sum(LeafArea)) |>
+  rename("sp_IDS" = "ID")
+
+leaf_area_2 <- scans_2 |>
   mutate(ID = sub("\\..*", "", ID)) |>
   group_by(dir, ID) |>
   summarise(n = n(),
@@ -56,13 +70,32 @@ leaf_area <- LA |>
   rename("sp_IDS" = "ID")
   
 # adding leaf_area to dataset
+
+leaf_area <- rbind(leaf_area_1, leaf_area_2)
 traits_clean <- left_join(traits_clean, leaf_area, by = "sp_IDS")
 
 #calculating SLA
 traits_clean <- traits_clean %>%
   mutate(SLA = leaf_area/dry_weight)
 
+# 10 SLA values are missing, don't know why...
+
 ### messing around
-pl_1 <- ggplot(data = traits_clean, mapping = aes(SLA, LDMC)) +
+
+ggplot(data = traits_clean, mapping = aes(leaf_area, dry_weight, label = sp_IDS)) +
+  geom_point(aes(colour = siteID), size = 2)
+ #geom_point(aes(colour = siteID), size = 2)
+#outlier here s_sp_4_2_11 is probably a juvenile
+
+ggplot(data = traits_clean, mapping = aes(leaf_area, LDMC, label = sp_IDS)) +
+  geom_point(aes(colour = siteID), size = 2)
+#looks good
+
+ggplot(data = traits_clean, mapping = aes(height, leaf_thickness, label = sp_IDS)) +
+  geom_point(aes(colour = siteID), size = 2)
+#looks fine
+
+ggplot(data= traits_clean, mapping = aes(height, SLA))+
   geom_point(aes(colour = species), size = 2)
-show(pl_1)
+
+
